@@ -14,17 +14,27 @@ def convert_function(code, varname):
 	return _locals['f']
 
 
+__f = None
+
+def worker_init(f):
+	global __f
+	__f = f
+
+def worker(x):
+	return __f(x)
+
+
 def _integrate(f, a, b, n):
 	step = (b - a) / n
 
 	sum = f(a) + f(b)
-	pool = Pool(4)
+	pool = Pool(None, initializer=worker_init, initargs=(f, ))
 
-	# P = np.arange(a+step, b-step, step)
-	# fx = pool.map(f, P)
-	# sum += 2*np.sum(fx)
-	for x in np.arange(a+step, b-step, step):
-		sum += 2*f(x)
+	P = np.arange(a+step, b-step, step)
+	fx = pool.map(worker, P)
+	sum += 2*np.sum(fx)
+	# for x in np.arange(a+step, b-step, step):
+	# 	sum += 2*f(x)
 
 	return sum * step / 2
 
@@ -72,5 +82,3 @@ def inf_integrate(f, a, psi, n=None, l=None):
 		inf_integrate.state = not inf_integrate.state
 		return inf_integrate(f, a, psi, n, l)
 
-
-# print(integrate(fff, 1, 10, psi=0.1))
